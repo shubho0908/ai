@@ -16,7 +16,7 @@ cd gen-ai
 
 2. Install dependencies:
 ```bash
-npm install
+pnpm install
 ```
 
 3. Set up environment variables:
@@ -25,13 +25,57 @@ cp .env.example .env
 # Edit .env with your API keys
 ```
 
-4. Explore individual projects - each folder contains its own README with specific setup and usage instructions.
+4. Start MongoDB with Docker (for LangGraph checkpoints):
+```bash
+docker-compose up -d mongodb
+```
+
+5. Explore individual projects - each folder contains its own README with specific setup and usage instructions.
+
+## Features
+
+### LangGraph with MongoDB Checkpoints
+- **Location**: `langgraph/chatWithCheckpoints.ts`
+- **Description**: Chat agent with persistent conversation history stored in MongoDB
+- **Features**:
+  - Persistent conversation memory across sessions
+  - MongoDB-backed checkpointing for reliability
+  - Docker Compose setup for easy MongoDB deployment
+  - Thread-based conversation isolation
+
+#### Running the LangGraph Chat
+```bash
+# Start MongoDB
+docker-compose up -d mongodb
+
+# Run the chat application
+pnpm start
+```
 
 ## Common Dependencies
 
 - **openai**: OpenAI API client
+- **@langchain/langgraph**: LangGraph for building stateful AI agents
+- **@langchain/langgraph-checkpoint-mongodb**: MongoDB checkpointer for persistent memory
+- **mongodb**: MongoDB driver for database operations
 - **zod**: TypeScript-first schema validation
 - **dotenv**: Environment variable management
+
+## Infrastructure
+
+### MongoDB Setup
+The project uses MongoDB for persistent conversation memory. The `docker-compose.yml` file provides:
+- MongoDB 7.0 with authentication
+- Persistent data volumes
+- Network isolation
+- Default credentials: `root/password123`
+
+### Environment Variables
+Required environment variables in `.env`:
+```
+OPENAI_SECRET_KEY=your_openai_key
+MONGODB_URI=mongodb://root:password123@localhost:27017/langgraph?authSource=admin
+```
 
 ## Project Philosophy
 
