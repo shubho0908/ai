@@ -5,7 +5,8 @@ import { MessagesAnnotation, StateGraph, START, END } from "@langchain/langgraph
 import { HumanMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import dotenv from "dotenv"
+import dotenv from "dotenv";
+import { notionTools } from "./notion-tools.js";
 
 dotenv.config()
 
@@ -59,7 +60,7 @@ const movieTool = tool(
     }
 );
 
-const tools = [new TavilySearch({ maxResults: 3 }), movieTool];
+const tools = [new TavilySearch({ maxResults: 3 }), movieTool, ...notionTools];
 const toolNode = new ToolNode(tools);
 
 // Create models for different scenarios
@@ -83,7 +84,11 @@ function needsTools(messages: any[]): boolean {
         'current', 'latest', 'recent', 'news', 'weather', 'today', 'price',
         'information about', 'tell me about', 'research', 'facts about',
         'movie', 'movies', 'film', 'films', 'cinema', 'actor', 'actress',
-        'director', 'bollywood', 'hollywood', 'series', 'show', 'tv show'
+        'director', 'bollywood', 'hollywood', 'series', 'show', 'tv show',
+        'notion', 'create page', 'create database', 'add block', 'update page',
+        'delete page', 'query database', 'search notion', 'read page',
+        'database', 'table', 'workspace', 'organize', 'notes', 'todo',
+        'project', 'task', 'wiki', 'knowledge base'
     ];
 
     return toolIndicators.some(indicator => content.includes(indicator));
@@ -143,15 +148,21 @@ Flow Description:
 - START: Entry point with user message
 - decideBehavior: Routes to chat_agent (normal conversation) or tool_agent (queries needing tools)
 - chat_agent: Handles regular conversations, goes directly to END
-- tool_agent: Handles queries requiring external data with access to both TavilySearch and movieTool
+- tool_agent: Handles queries requiring external data with access to TavilySearch, movieTool, and comprehensive Notion tools
 - toolsCondition: Checks if tool_agent wants to use tools
-- tools: Executes appropriate tool (TavilySearch for general search, movieTool for movies), then loops back to tool_agent
+- tools: Executes appropriate tool, then loops back to tool_agent
 - END: Final response returned to user
 
 Tool Selection:
 - AI automatically chooses the right tool based on query context and tool descriptions
-- movieTool: Triggered by strong directive description for ANY movie-related queries
-- TavilySearch: Used for general web search, news, current events
+- TavilySearch: Used for general web search, news, current events, research
+- movieTool: Triggered for ANY movie, film, cinema, actor-related queries
+- Notion Tools (13 comprehensive tools):
+  * Pages: createNotionPage, readNotionPage, updateNotionPage, deleteNotionPage
+  * Databases: createNotionDatabase, readNotionDatabase, queryNotionDatabase, updateNotionDatabase
+  * Blocks: addNotionBlocks, readNotionBlocks, updateNotionBlock, deleteNotionBlock
+  * Search: searchNotion (across entire workspace)
+  * Triggered by: notion, create, add, find, search, database, table, notes, tasks, todo, organize, workspace queries
 */
 
 // Utility function to run the chat
@@ -174,7 +185,7 @@ async function main() {
 
     // Search query
     console.log("\n2. Search Query:");
-    const searchResponse = await runChat("tell about saiyaara movie?");
+    const searchResponse = await runChat("create a page in anywhere u want in my notion Notes page/db (url = https://www.notion.so/Notes-1555484ebb068099bd52f960a6df4d71), should have 5 theories by Einstein with proper headings and quotes blocks.");
     console.log("Response:", searchResponse);
 }
 
