@@ -52,11 +52,44 @@ docker-compose up -d mongodb
 pnpm start
 ```
 
+### Memory with Graph Database
+- **Location**: `memories/memoryWithGraph.ts`
+- **Description**: AI Assistant with advanced memory capabilities using vector store and graph database
+- **Features**:
+  - Vector-based memory storage with Qdrant
+  - Graph-based memory connections with Neo4j
+  - Contextual memory retrieval and storage
+  - Persistent conversation history with semantic understanding
+  - Intelligent memory filtering based on query relevance
+
+#### Setup Requirements
+1. **Qdrant**: Vector database for embedding storage
+2. **Neo4j**: Graph database for memory relationships
+3. **OpenAI API**: For embeddings and chat completions
+
+#### Environment Variables
+```bash
+NEO4J_URI=neo4j://localhost:7687
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=password
+OPENAI_SECRET_KEY=your_openai_key
+```
+
+#### Running the Memory Chat
+```bash
+# Start Qdrant and Neo4j services
+docker-compose up -d qdrant neo4j
+
+# Run the memory chat application
+npx tsx memories/memoryWithGraph.ts
+```
+
 ## Common Dependencies
 
 - **openai**: OpenAI API client
 - **@langchain/langgraph**: LangGraph for building stateful AI agents
 - **@langchain/langgraph-checkpoint-mongodb**: MongoDB checkpointer for persistent memory
+- **mem0ai**: Memory management with vector and graph storage capabilities
 - **mongodb**: MongoDB driver for database operations
 - **zod**: TypeScript-first schema validation
 - **dotenv**: Environment variable management
