@@ -21,21 +21,8 @@ An intelligent multi-agent chat system built with LangGraph that intelligently r
 
 ### Workflow Structure
 
-```
-START
-  |
-  v
-decideBehavior (conditional routing)
-  |                    |
-  v                    v
-chat_agent          tool_agent
-  |                    |
-  v                    v (toolsCondition)
- END              tools OR END
-                    |
-                    v
-                tool_agent (loop back)
-```
+<img width="2040" height="2344" alt="image" src="https://github.com/user-attachments/assets/d2b2d5aa-221f-4c01-ad8f-dbe3b05b6ec3" />
+
 
 ### Flow Description
 
