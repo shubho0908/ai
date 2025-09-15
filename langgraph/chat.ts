@@ -3,12 +3,63 @@ import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { ChatOpenAI } from "@langchain/openai";
 import { MessagesAnnotation, StateGraph, START, END } from "@langchain/langgraph";
 import { HumanMessage } from "@langchain/core/messages";
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
 import dotenv from "dotenv"
 
 dotenv.config()
 
-// Define the tools for the agent to use
-const tools = [new TavilySearch({ maxResults: 3 })];
+const movieTool = tool(
+    async (input) => {
+        const { query } = input as { query: string };
+        try {
+            console.log("Movie tool called 🚀");
+
+            const response = await fetch(
+                `https://www.omdbapi.com/?apikey=trilogy&s=${encodeURIComponent(query)}&type=movie`
+            );
+
+            if (!response.ok) {
+                return `Error fetching movie data: ${response.status} ${response.statusText}`;
+            }
+
+            const data = await response.json();
+
+            if (data.Response === "False") {
+                return `No movies found for query: "${query}". ${data.Error || ''}`;
+            }
+
+            if (!data.Search || data.Search.length === 0) {
+                return `No movies found for query: "${query}"`;
+            }
+
+            const movies = data.Search.slice(0, 5).map((movie: any) => ({
+                title: movie.Title,
+                year: movie.Year,
+                imdbID: movie.imdbID,
+                type: movie.Type,
+                poster: movie.Poster !== 'N/A' ? movie.Poster : null
+            }));
+
+            return JSON.stringify({
+                query,
+                total_results: data.totalResults,
+                movies
+            }, null, 2);
+        } catch (error) {
+            return `Error searching for movies: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        }
+    },
+    {
+        name: "movieFinder",
+        description: "ALWAYS use this tool for ANY movie-related query. Search for movies using OMDb API. Provides comprehensive movie data including title, year, IMDb ID, and poster. Use this for all movie searches, questions about films, actors, or any cinema-related queries.",
+        schema: z.object({
+            query: z.string().describe("The movie title or search query to find movies")
+        })
+    }
+);
+
+const tools = [new TavilySearch({ maxResults: 3 }), movieTool];
 const toolNode = new ToolNode(tools);
 
 // Create models for different scenarios
@@ -17,28 +68,30 @@ const chatModel = new ChatOpenAI({
     apiKey: process.env.OPENAI_SECRET_KEY
 });
 
-const searchModel = new ChatOpenAI({
+const toolModel = new ChatOpenAI({
     model: "gpt-5-nano-2025-08-07",
     apiKey: process.env.OPENAI_SECRET_KEY
 }).bindTools(tools);
 
-// Function to determine if query needs search capabilities
-function shouldUseSearch(messages: any[]): boolean {
+// Function to determine if query needs tools
+function needsTools(messages: any[]): boolean {
     const lastMessage = messages[messages.length - 1];
     const content = lastMessage.content.toLowerCase();
 
-    const searchIndicators = [
+    const toolIndicators = [
         'search', 'find', 'look up', 'what is', 'who is', 'when did', 'where is',
         'current', 'latest', 'recent', 'news', 'weather', 'today', 'price',
-        'information about', 'tell me about', 'research', 'facts about'
+        'information about', 'tell me about', 'research', 'facts about',
+        'movie', 'movies', 'film', 'films', 'cinema', 'actor', 'actress',
+        'director', 'bollywood', 'hollywood', 'series', 'show', 'tv show'
     ];
 
-    return searchIndicators.some(indicator => content.includes(indicator));
+    return toolIndicators.some(indicator => content.includes(indicator));
 }
 
-// Router function to decide between chat and search
+// Router function
 function decideBehavior(state: typeof MessagesAnnotation.State): string {
-    return shouldUseSearch(state.messages) ? "search_agent" : "chat_agent";
+    return needsTools(state.messages) ? "tool_agent" : "chat_agent";
 }
 
 // Chat agent for normal conversations
@@ -47,23 +100,23 @@ async function chatAgent(state: typeof MessagesAnnotation.State) {
     return { messages: [response] };
 }
 
-// Search agent with tool capabilities
-async function searchAgent(state: typeof MessagesAnnotation.State) {
-    const response = await searchModel.invoke(state.messages);
+// Tool agent with all tool capabilities
+async function toolAgent(state: typeof MessagesAnnotation.State) {
+    const response = await toolModel.invoke(state.messages);
     return { messages: [response] };
 }
 
 // Build the workflow graph
 const workflow = new StateGraph(MessagesAnnotation)
     .addNode("chat_agent", chatAgent)
-    .addNode("search_agent", searchAgent)
+    .addNode("tool_agent", toolAgent)
     .addNode("tools", toolNode)
     .addConditionalEdges(START, decideBehavior, {
         "chat_agent": "chat_agent",
-        "search_agent": "search_agent"
+        "tool_agent": "tool_agent"
     })
-    .addConditionalEdges("search_agent", toolsCondition)
-    .addEdge("tools", "search_agent")
+    .addConditionalEdges("tool_agent", toolsCondition)
+    .addEdge("tools", "tool_agent")
     .addEdge("chat_agent", END);
 
 export const agenticChatApp = workflow.compile();
@@ -78,22 +131,27 @@ START
 decideBehavior (conditional)
   |                    |
   v                    v
-chat_agent          search_agent
+chat_agent          tool_agent
   |                    |
   v                    v (toolsCondition)
  END              tools OR END
                     |
                     v
-                search_agent (loop back)
+                tool_agent (loop back)
 
 Flow Description:
 - START: Entry point with user message
-- decideBehavior: Routes to chat_agent (normal conversation) or search_agent (search queries)
+- decideBehavior: Routes to chat_agent (normal conversation) or tool_agent (queries needing tools)
 - chat_agent: Handles regular conversations, goes directly to END
-- search_agent: Handles search queries with tool capabilities
-- toolsCondition: Checks if search_agent wants to use tools
-- tools: Executes TavilySearch if needed, then loops back to search_agent
+- tool_agent: Handles queries requiring external data with access to both TavilySearch and movieTool
+- toolsCondition: Checks if tool_agent wants to use tools
+- tools: Executes appropriate tool (TavilySearch for general search, movieTool for movies), then loops back to tool_agent
 - END: Final response returned to user
+
+Tool Selection:
+- AI automatically chooses the right tool based on query context and tool descriptions
+- movieTool: Triggered by strong directive description for ANY movie-related queries
+- TavilySearch: Used for general web search, news, current events
 */
 
 // Utility function to run the chat
@@ -106,7 +164,6 @@ export async function runChat(message: string) {
     return result.messages[result.messages.length - 1].content;
 }
 
-// Example usage
 async function main() {
     console.log("=== Agentic Chat Demo ===");
 
@@ -117,13 +174,8 @@ async function main() {
 
     // Search query
     console.log("\n2. Search Query:");
-    const searchResponse = await runChat("What is the latest news about OpenAI?");
+    const searchResponse = await runChat("tell about saiyaara movie?");
     console.log("Response:", searchResponse);
-
-    // Another normal chat
-    console.log("\n3. Normal Chat:");
-    const chat2Response = await runChat("Can you help me understand JavaScript closures?");
-    console.log("Response:", chat2Response);
 }
 
 main().catch(console.error);
