@@ -15,8 +15,6 @@ A collection of AI agents and automation tools built with modern AI models. This
   - [Getting Started](#getting-started)
   - [Common Dependencies](#common-dependencies)
   - [Infrastructure](#infrastructure)
-  - [Contributing](#contributing)
-  - [License](#license)
 
 ## Projects
 
