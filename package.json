@@ -1,7 +1,8 @@
 {
 	"type": "module",
 	"scripts": {
-		"start": "node --loader ts-node/esm langgraph/chat.ts"
+		"start": "node --loader ts-node/esm langgraph/chat.ts",
+		"research": "NODE_OPTIONS='--loader ts-node/esm' node --experimental-specifier-resolution=node agentic-research/index.ts"
 	},
 	"dependencies": {
 		"@langchain/cohere": "^0.3.4",
