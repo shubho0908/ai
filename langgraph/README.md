@@ -21,7 +21,7 @@ An intelligent multi-agent chat system built with LangGraph that intelligently r
 
 ### Workflow Structure
 
-<img width="2040" height="2344" alt="image" src="https://github.com/user-attachments/assets/d2b2d5aa-221f-4c01-ad8f-dbe3b05b6ec3" />
+<img width="2080" height="1172" alt="image" src="https://github.com/user-attachments/assets/2d79e794-1868-4ba0-ab60-42e763e2e225" />
 
 
 ### Flow Description
