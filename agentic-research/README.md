@@ -16,31 +16,8 @@ The agent's logic is structured as a state graph. Each step in the graph is a "n
 
 Here is a simplified visualization of the workflow:
 
-```
-[START]
-   |
-   v
-[Research Gate] --(No Research Needed)--> [Direct LLM] --> [END]
-   |
-(Research Needed)
-   |
-   v
-[Research Planning]
-   |
-   v
-[Research Execution]
-   |
-   v
-[Evaluation] --(Results Insufficient & Retries < 3)--> [Research Planning]
-   |
-(Results Sufficient or Max Retries)
-   |
-   v
-[Synthesis]
-   |
-   v
-[END]
-```
+<img width="1613" height="1777" alt="image" src="https://github.com/user-attachments/assets/6d157be7-0afa-450e-b98d-462de3f51cf0" />
+
 
 ---
 
