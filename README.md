@@ -2,9 +2,56 @@
 
 A collection of AI agents and automation tools built with modern AI models. This repository contains various specialized agents for different use cases, each with their own implementation and documentation.
 
-## Overview
+## Table of Contents
 
-This project serves as a playground and collection for experimenting with AI agents, automation tools, and generative AI applications. Each subdirectory contains a self-contained project with its own specific purpose and documentation.
+- [GenAI Agents Collection](#genai-agents-collection)
+  - [Table of Contents](#table-of-contents)
+  - [Projects](#projects)
+    - [Agentic Systems](#agentic-systems)
+    - [Reasoning Patterns](#reasoning-patterns)
+    - [Graph-Based Agents](#graph-based-agents)
+    - [Retrieval-Augmented Generation (RAG)](#retrieval-augmented-generation-rag)
+    - [Caching](#caching)
+  - [Getting Started](#getting-started)
+  - [Common Dependencies](#common-dependencies)
+  - [Infrastructure](#infrastructure)
+  - [Contributing](#contributing)
+  - [License](#license)
+
+## Projects
+
+### Agentic Systems
+
+| Project                       | Description                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Agentic Code CLI**          | An intelligent coding assistant that can perform file system operations and coding tasks.                 |
+| **Agentic Research Workflow** | A multi-step agentic workflow for conducting research using LangGraph.                                    |
+| **Gmail Agent**               | A specialized AI agent for Gmail automation and email management.                                         |
+
+### Reasoning Patterns
+
+| Project                  | Description                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------- |
+| **Chain of Thoughts (CoT)** | A simple implementation of the Chain of Thoughts reasoning pattern for AI assistants.      |
+
+### Graph-Based Agents
+
+| Project                        | Description                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| **LangGraph Agentic Chat**     | An intelligent multi-agent chat system built with LangGraph that intelligently routes between conversational AI and tool-enabled agents. |
+| **Memory with Graph Database** | An AI Assistant with advanced memory capabilities using a vector store and graph database.                |
+
+### Retrieval-Augmented Generation (RAG)
+
+| Project               | Description                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| **RAG with LangChain** | A Retrieval-Augmented Generation (RAG) system built with LangChain for document indexing and intelligent querying. |
+
+### Caching
+
+| Project           | Description                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| **Semantic Cache** | A smart caching solution that uses semantic similarity to cache and retrieve AI-generated responses.      |
 
 ## Getting Started
 
@@ -32,58 +79,6 @@ docker-compose up -d mongodb
 
 5. Explore individual projects - each folder contains its own README with specific setup and usage instructions.
 
-## Features
-
-### LangGraph with MongoDB Checkpoints
-- **Location**: `langgraph/chatWithCheckpoints.ts`
-- **Description**: Chat agent with persistent conversation history stored in MongoDB
-- **Features**:
-  - Persistent conversation memory across sessions
-  - MongoDB-backed checkpointing for reliability
-  - Docker Compose setup for easy MongoDB deployment
-  - Thread-based conversation isolation
-
-#### Running the LangGraph Chat
-```bash
-# Start MongoDB
-docker-compose up -d mongodb
-
-# Run the chat application
-pnpm start
-```
-
-### Memory with Graph Database
-- **Location**: `memories/memoryWithGraph.ts`
-- **Description**: AI Assistant with advanced memory capabilities using vector store and graph database
-- **Features**:
-  - Vector-based memory storage with Qdrant
-  - Graph-based memory connections with Neo4j
-  - Contextual memory retrieval and storage
-  - Persistent conversation history with semantic understanding
-  - Intelligent memory filtering based on query relevance
-
-#### Setup Requirements
-1. **Qdrant**: Vector database for embedding storage
-2. **Neo4j**: Graph database for memory relationships
-3. **OpenAI API**: For embeddings and chat completions
-
-#### Environment Variables
-```bash
-NEO4J_URI=neo4j://localhost:7687
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=password
-OPENAI_SECRET_KEY=your_openai_key
-```
-
-#### Running the Memory Chat
-```bash
-# Start Qdrant and Neo4j services
-docker-compose up -d qdrant neo4j
-
-# Run the memory chat application
-npx tsx memories/memoryWithGraph.ts
-```
-
 ## Common Dependencies
 
 - **openai**: OpenAI API client
@@ -103,27 +98,15 @@ The project uses MongoDB for persistent conversation memory. The `docker-compose
 - Network isolation
 - Default credentials: `root/password123`
 
+### Qdrant Setup
+The project uses Qdrant for vector storage. The `docker-compose.yml` file provides:
+- Qdrant vector database
+- Persistent data volumes
+
 ### Environment Variables
 Required environment variables in `.env`:
 ```
 OPENAI_SECRET_KEY=your_openai_key
 MONGODB_URI=mongodb://root:password123@localhost:27017/langgraph?authSource=admin
+QDRANT_URL=http://localhost:6333
 ```
-
-## Project Philosophy
-
-- **Modular Design**: Each agent/tool is self-contained
-- **Type Safety**: Full TypeScript support
-- **Extensible**: Easy to add new agents and tools
-- **Well-Documented**: Each project includes comprehensive documentation
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch for new agents or improvements
-3. Add proper documentation for new projects
-4. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
