@@ -26,15 +26,17 @@ An intelligent multi-agent chat system built with LangGraph that intelligently r
 
 ### Flow Description
 
-1. **START**: Entry point with user message
-2. **decideBehavior**: Intelligent routing based on query context
-   - Routes to `chat_agent` for normal conversations
-   - Routes to `tool_agent` for queries requiring external data/actions
-3. **chat_agent**: Handles conversational queries directly → END
-4. **tool_agent**: Processes tool-requiring queries with access to all integrated tools
-5. **toolsCondition**: Determines if tools need to be executed
-6. **tools**: Executes appropriate tools, then loops back to tool_agent
-7. **END**: Returns final response to user
+1.  **START**: Entry point with user message.
+2.  **decideBehavior**: An LLM-based router analyzes the conversation history and current query to decide the best path.
+    -   Routes to `chat_agent` for general conversation.
+    -   Routes to `tool_agent` for queries that require using tools (Notion, Movie search, Web search).
+3.  **chat_agent**: Handles conversational queries directly and then proceeds to END.
+4.  **tool_agent**: Processes queries that require tools. It invokes the tool-bound model to decide which tool to use.
+5.  **toolsCondition**: After the `tool_agent` runs, this condition checks if the model decided to call a tool.
+    -   If a tool is called, it goes to the `tools` node.
+    -   If no tool is called, it goes to END.
+6.  **tools**: Executes the requested tool (e.g., `movieFinder`, a Notion tool, or `TavilySearch`). The output is then sent back to the `tool_agent`.
+7.  **END**: The final response is returned to the user.
 
 ## Available Tools
 
@@ -135,28 +137,26 @@ npx tsx langgraph/chat.ts
 
 ## Intelligent Routing System
 
-The system uses sophisticated query analysis to determine routing:
-
-### Tool Indicators
-Queries containing these keywords trigger tool-enabled agents:
-- **Search & Research**: search, find, look up, current, latest, news, research
-- **Movie & Entertainment**: movie, film, cinema, actor, director, bollywood, hollywood
-- **Notion Operations**: notion, create, database, page, notes, todo, organize, workspace
-- **Information Retrieval**: what is, who is, when did, where is, information about
+The system uses an LLM-based routing mechanism to decide whether a user's query should be handled by a conversational agent or a tool-using agent.
 
 ### Routing Logic
-```typescript
-function needsTools(messages: any[]): boolean {
-    const content = lastMessage.content.toLowerCase();
-    return toolIndicators.some(indicator => content.includes(indicator));
-}
-```
+
+The `decideBehavior` function is the core of this routing. It works as follows:
+
+1.  **Context Gathering**: It retrieves the last six messages to understand the recent conversation history.
+2.  **Prompting the LLM**: It creates a specialized prompt that includes the conversation context and the user's latest query.
+3.  **Decision Making**: The prompt asks the model to decide if the query requires external tools (like movie search, web search, or Notion) or if it's a general conversation. The model is instructed to answer with either "tools" or "chat".
+4.  **Routing**: Based on the model's answer, the system routes the request to either the `tool_agent` (for "tools") or the `chat_agent` (for "chat").
+
+This approach allows for flexible and context-aware routing, making the agent more intelligent in its responses.
 
 ## Model Configuration
 
-- **Primary Model**: GPT-5-nano-2025-08-07
-- **Optimized Performance**: Fast response times with high accuracy
-- **Tool Binding**: Automatic tool selection based on query context
+- **Primary Model**: Configured via `process.env.OPENAI_MODEL`. The system uses two model instances:
+    - `chatModel`: For general conversation and routing decisions.
+    - `toolModel`: Bound to the available tools for tool-using agent.
+- **Optimized Performance**: Fast response times with high accuracy.
+- **Tool Binding**: The `toolModel` is bound to the tools, allowing it to decide which tool to use based on the query.
 - **Context Preservation**: Maintains conversation history throughout interactions
 
 ## Notion Integration Features
@@ -228,23 +228,6 @@ function needsTools(messages: any[]): boolean {
 3. Update routing indicators if needed
 4. Test tool integration
 
-### Custom Notion Operations
-```typescript
-// Example: Custom tool for specific workflow
-export const customNotionTool = tool(
-    async (input) => {
-        // Implementation
-    },
-    {
-        name: "customOperation",
-        description: "Custom Notion workflow",
-        schema: z.object({
-            // Parameters
-        })
-    }
-);
-```
-
 ### Workflow Modifications
 - Modify routing logic in `decideBehavior` function
 - Add new agent types for specialized workflows
@@ -265,14 +248,6 @@ export const customNotionTool = tool(
 - **Rate Limiting**: Implement exponential backoff for API calls
 - **Tool Failures**: Check tool-specific error messages and logs
 - **Routing Issues**: Verify query indicators match expected patterns
-
-### Debug Mode
-```typescript
-// Enable detailed logging
-console.log("Tool selected:", toolName);
-console.log("Query analysis:", queryAnalysis);
-console.log("Routing decision:", routingDecision);
-```
 
 ## Future Enhancements
 
