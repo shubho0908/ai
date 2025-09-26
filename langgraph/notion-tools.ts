@@ -5,6 +5,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+function addThinkingStep(message: string) {
+    console.log(`🤖 ${message}`);
+}
+
 const notion = new Client({
     auth: process.env.NOTION_TOKEN,
 });
@@ -20,10 +24,9 @@ export const createPageTool = tool(
         };
 
         try {
-            console.log("Creating Notion page 📝");
-
-            const pageData: any = {
-                parent: {
+            addThinkingStep("Creating new Notion page 📝");
+            
+            const pageData: any = {                parent: {
                     type: "page_id",
                     page_id: parentId
                 },
@@ -61,6 +64,7 @@ export const createPageTool = tool(
             }
 
             const response = await notion.pages.create(pageData);
+            addThinkingStep(`Page "${title}" created successfully ✨`);
 
             return JSON.stringify({
                 success: true,
@@ -70,6 +74,7 @@ export const createPageTool = tool(
             }, null, 2);
 
         } catch (error) {
+            addThinkingStep(`Error creating page: ${error instanceof Error ? error.message : 'Unknown error'} ❌`);
             return JSON.stringify({
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error',
@@ -98,7 +103,7 @@ export const readPageTool = tool(
         };
 
         try {
-            console.log("Reading Notion page 📖");
+            addThinkingStep("Reading Notion page content 📖");
 
             const page = await notion.pages.retrieve({ page_id: pageId });
 
@@ -147,7 +152,7 @@ export const updatePageTool = tool(
         };
 
         try {
-            console.log("Updating Notion page ✏️");
+            addThinkingStep("Updating Notion page properties ✏️");
 
             const updateData: any = {};
 
@@ -198,7 +203,7 @@ export const deletePageTool = tool(
         };
 
         try {
-            console.log("Archiving Notion page 🗑️");
+            addThinkingStep("Archiving Notion page 🗑️");
 
             await notion.pages.update({
                 page_id: pageId,
@@ -238,7 +243,7 @@ export const createDatabaseTool = tool(
         };
 
         try {
-            console.log("Creating Notion database 🗂️");
+            addThinkingStep("Creating new Notion database 🗂️");
 
             const databaseData = {
                 parent: {
@@ -302,7 +307,7 @@ export const readDatabaseTool = tool(
         };
 
         try {
-            console.log("Reading Notion database 📊");
+            addThinkingStep("Reading Notion database structure 📊");
 
             const database = await notion.databases.retrieve({ database_id: databaseId });
 
@@ -342,7 +347,7 @@ export const queryDatabaseTool = tool(
         };
 
         try {
-            console.log("Querying Notion database 🔍");
+            addThinkingStep("Querying Notion database for entries 🔍");
 
             const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
                 method: 'POST',
@@ -398,7 +403,7 @@ export const updateDatabaseTool = tool(
         };
 
         try {
-            console.log("Updating Notion database 📝");
+            addThinkingStep("Updating Notion database structure 📝");
 
             const updateData: any = {};
 
@@ -456,7 +461,7 @@ export const addBlockTool = tool(
         };
 
         try {
-            console.log("Adding blocks to Notion page 📝");
+            addThinkingStep("Adding content blocks to Notion page 📝");
 
             const response = await notion.blocks.children.append({
                 block_id: parentId,

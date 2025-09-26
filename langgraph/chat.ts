@@ -2,19 +2,24 @@ import { TavilySearch } from "@langchain/tavily";
 import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { ChatOpenAI } from "@langchain/openai";
 import { MessagesAnnotation, StateGraph, START, END } from "@langchain/langgraph";
-import { HumanMessage } from "@langchain/core/messages";
+import { HumanMessage, BaseMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import dotenv from "dotenv";
 import { notionTools } from "./notion-tools.js";
+import { createInterface } from 'readline';
 
 dotenv.config()
+
+function addThinkingStep(message: string) {
+    console.log(`🤖 ${message}`);
+}
 
 const movieTool = tool(
     async (input) => {
         const { query } = input as { query: string };
         try {
-            console.log("Movie tool called 🚀");
+            addThinkingStep("Searching for movies 🎬");
 
             const response = await fetch(
                 `https://www.omdbapi.com/?apikey=trilogy&s=${encodeURIComponent(query)}&type=movie`
@@ -25,14 +30,19 @@ const movieTool = tool(
             }
 
             const data = await response.json();
+            addThinkingStep("Processing movie search results 🎥");
 
             if (data.Response === "False") {
+                addThinkingStep("No movies found 😕");
                 return `No movies found for query: "${query}". ${data.Error || ''}`;
             }
 
             if (!data.Search || data.Search.length === 0) {
+                addThinkingStep("No movies found 😕");
                 return `No movies found for query: "${query}"`;
             }
+
+            addThinkingStep("Found matching movies 🎬");
 
             const movies = data.Search.slice(0, 5).map((movie: any) => ({
                 title: movie.Title,
@@ -74,40 +84,54 @@ const toolModel = new ChatOpenAI({
     apiKey: process.env.OPENAI_SECRET_KEY
 }).bindTools(tools);
 
-// Function to determine if query needs tools
-function needsTools(messages: any[]): boolean {
-    const lastMessage = messages[messages.length - 1];
-    const content = lastMessage.content.toLowerCase();
+async function decideBehavior(state: typeof MessagesAnnotation.State): Promise<string> {
+    try {
+        const messages = state.messages;
+        const currentQuery = messages[messages.length - 1].content;
+        
+        // Get recent conversation context (last 6 messages or all if fewer)
+        const recentMessages = messages.slice(-6);
+        const conversationContext = recentMessages
+            .map(msg => `${msg._getType()}: ${msg.content}`)
+            .join('\n');
+        
+        const routingPrompt = `Based on the conversation context and current query, does this need external tools (search, movies, notion)?
 
-    const toolIndicators = [
-        'search', 'find', 'look up', 'what is', 'who is', 'when did', 'where is',
-        'current', 'latest', 'recent', 'news', 'weather', 'today', 'price',
-        'information about', 'tell me about', 'research', 'facts about',
-        'movie', 'movies', 'film', 'films', 'cinema', 'actor', 'actress',
-        'director', 'bollywood', 'hollywood', 'series', 'show', 'tv show',
-        'notion', 'create page', 'create database', 'add block', 'update page',
-        'delete page', 'query database', 'search notion', 'read page',
-        'database', 'table', 'workspace', 'organize', 'notes', 'todo',
-        'project', 'task', 'wiki', 'knowledge base'
-    ];
+CONVERSATION CONTEXT:
+${conversationContext}
 
-    return toolIndicators.some(indicator => content.includes(indicator));
+CURRENT QUERY: ${currentQuery}
+
+Consider:
+- If discussing movies, actors, films → needs movie tool
+- If asking about current events, news, research → needs search tool  
+- If mentioning notion, databases, notes, tasks → needs notion tools
+- If following up on previous tool usage → likely needs tools
+- If general conversation, opinions, explanations → chat only
+
+Answer only "tools" or "chat":`;
+
+        const decision = await chatModel.invoke([new HumanMessage(routingPrompt)]);
+        const route = decision.content.toString().toLowerCase().includes("tools") ? "tool_agent" : "chat_agent";
+        addThinkingStep(`Route: ${route} (Context: ${recentMessages.length} messages)`);
+        return route;
+    } catch (error) {
+        addThinkingStep("Routing error, defaulting to tool_agent");
+        return "tool_agent";
+    }
 }
 
-// Router function
-function decideBehavior(state: typeof MessagesAnnotation.State): string {
-    return needsTools(state.messages) ? "tool_agent" : "chat_agent";
-}
-
-// Chat agent for normal conversations
 async function chatAgent(state: typeof MessagesAnnotation.State) {
+    addThinkingStep("Processing with chat agent 💭");
     const response = await chatModel.invoke(state.messages);
+    addThinkingStep("Chat response ready ✨");
     return { messages: [response] };
 }
 
-// Tool agent with all tool capabilities
 async function toolAgent(state: typeof MessagesAnnotation.State) {
+    addThinkingStep("Processing with tool agent 🛠️");
     const response = await toolModel.invoke(state.messages);
+    addThinkingStep("Tool agent response ready 🎯");
     return { messages: [response] };
 }
 
@@ -126,67 +150,63 @@ const workflow = new StateGraph(MessagesAnnotation)
 
 export const agenticChatApp = workflow.compile();
 
-/*
-Workflow Structure:
-==================
+async function runChat(message: string, history: BaseMessage[] = []) {
+    try {
+        addThinkingStep("Starting new chat interaction 🆕");
+        const messages = [...history, new HumanMessage(message)];
+        const result = await agenticChatApp.invoke({ messages });
+        addThinkingStep("Chat interaction complete ✅");
+        return [...messages, ...result.messages];
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            console.log(`Chat error: ${error.message}`);
+        } else {
+            console.log('An unknown error occurred');
+        }
+        return [...history, new HumanMessage(message)]; 
+    }
+}
 
-START
-  |
-  v
-decideBehavior (conditional)
-  |                    |
-  v                    v
-chat_agent          tool_agent
-  |                    |
-  v                    v (toolsCondition)
- END              tools OR END
-                    |
-                    v
-                tool_agent (loop back)
+// Terminal interface
+const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
 
-Flow Description:
-- START: Entry point with user message
-- decideBehavior: Routes to chat_agent (normal conversation) or tool_agent (queries needing tools)
-- chat_agent: Handles regular conversations, goes directly to END
-- tool_agent: Handles queries requiring external data with access to TavilySearch, movieTool, and comprehensive Notion tools
-- toolsCondition: Checks if tool_agent wants to use tools
-- tools: Executes appropriate tool, then loops back to tool_agent
-- END: Final response returned to user
+export async function startChat() {
+    console.log("🤖 Chat started. Type 'exit' to quit.");
+    let history: BaseMessage[] = [];
 
-Tool Selection:
-- AI automatically chooses the right tool based on query context and tool descriptions
-- TavilySearch: Used for general web search, news, current events, research
-- movieTool: Triggered for ANY movie, film, cinema, actor-related queries
-- Notion Tools (13 comprehensive tools):
-  * Pages: createNotionPage, readNotionPage, updateNotionPage, deleteNotionPage
-  * Databases: createNotionDatabase, readNotionDatabase, queryNotionDatabase, updateNotionDatabase
-  * Blocks: addNotionBlocks, readNotionBlocks, updateNotionBlock, deleteNotionBlock
-  * Search: searchNotion (across entire workspace)
-  * Triggered by: notion, create, add, find, search, database, table, notes, tasks, todo, organize, workspace queries
-*/
+    const askQuestion = () => {
+        rl.question('\nYou: ', async (input: string) => {
+            if (input.toLowerCase().trim() === 'exit') {
+                console.log("Goodbye!");
+                rl.close();
+                process.exit(0);
+                return;
+            }
 
-// Utility function to run the chat
-export async function runChat(message: string) {
-    const initialState = {
-        messages: [new HumanMessage(message)]
+            if (input.trim()) {
+                try {
+                    const newHistory = await runChat(input, history);
+                    history = newHistory;
+                    
+                    const lastMessage = history[history.length - 1];
+                    console.log(`\nAssistant: ${lastMessage.content}`);
+                } catch (error: unknown) {
+                    if (error instanceof Error) {
+                        console.log(`Error: ${error.message}`);
+                    } else {
+                        console.log('An unknown error occurred');
+                    }
+                }
+            }
+
+            askQuestion();
+        });
     };
 
-    const result = await agenticChatApp.invoke(initialState);
-    return result.messages[result.messages.length - 1].content;
+    askQuestion();
 }
 
-async function main() {
-    console.log("=== Agentic Chat Demo ===");
-
-    // Normal chat
-    console.log("\n1. Normal Chat:");
-    const chatResponse = await runChat("Hello! How are you today?");
-    console.log("Response:", chatResponse);
-
-    // Search query
-    console.log("\n2. Search Query:");
-    const searchResponse = await runChat("create a page in anywhere u want in my notion Notes page/db (url = https://www.notion.so/Notes-1555484ebb068099bd52f960a6df4d71), should have 5 theories by Einstein with proper headings and quotes blocks.");
-    console.log("Response:", searchResponse);
-}
-
-main().catch(console.error);
+startChat().catch(console.error);
