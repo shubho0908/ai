@@ -8,7 +8,7 @@ const client = new openai({
 });
 
 const response = await client.responses.create({
-  model: "gpt-5-nano-2025-08-07",
+  model: process.env.OPENAI_MODEL,
   input: "Write a short bedtime story about a unicorn.",
 });
 

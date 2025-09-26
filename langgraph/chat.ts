@@ -65,12 +65,12 @@ const toolNode = new ToolNode(tools);
 
 // Create models for different scenarios
 const chatModel = new ChatOpenAI({
-    model: "gpt-5-nano-2025-08-07",
+    model: process.env.OPENAI_MODEL,
     apiKey: process.env.OPENAI_SECRET_KEY
 });
 
 const toolModel = new ChatOpenAI({
-    model: "gpt-5-nano-2025-08-07",
+    model: process.env.OPENAI_MODEL,
     apiKey: process.env.OPENAI_SECRET_KEY
 }).bindTools(tools);
 

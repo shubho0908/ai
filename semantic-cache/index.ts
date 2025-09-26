@@ -72,7 +72,7 @@ async function generateResponseWithLLM(userQuery: string): Promise<string> {
   ];
 
   const response = await client.chat.completions.create({
-    model: "gpt-5-nano-2025-08-07", 
+    model: process.env.OPENAI_MODEL, 
     messages,
   });
 

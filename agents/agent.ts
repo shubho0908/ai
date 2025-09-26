@@ -25,7 +25,7 @@ export async function processQuery(userQuery: string, apiKey: string): Promise<v
     while (!isCompleted) {
         try {
             const response = await client.chat.completions.create({
-                model: "gpt-5-nano-2025-08-07",
+                model: process.env.OPENAI_MODEL,
                 messages: messages,
                 response_format: {
                     type: "json_schema",

@@ -12,7 +12,7 @@ export const researchTools = [
 ];
 
 export const baseModel = new ChatOpenAI({
-  model: "gpt-4o-mini",
+  model: process.env.OPENAI_MODEL,
   apiKey: process.env.OPENAI_API_KEY,
   temperature: 0,
 });

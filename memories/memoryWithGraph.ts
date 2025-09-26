@@ -39,7 +39,7 @@ const config = {
     llm: {
         provider: 'openai',
         config: {
-            model: 'gpt-5-nano-2025-08-07',
+            model: process.env.OPENAI_MODEL,
             apiKey: process.env.OPENAI_SECRET_KEY
         }
     }
@@ -126,7 +126,7 @@ async function chat(userInput: string, userId: string): Promise<string> {
 
     try {
         const response = await client.chat.completions.create({
-            model: "gpt-5-nano-2025-08-07",
+            model: process.env.OPENAI_MODEL,
             messages: messages
         });
 

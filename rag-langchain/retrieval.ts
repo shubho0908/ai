@@ -73,7 +73,7 @@ const context = rerankedDocs
 
     // Step 4: Generate response with OpenAI
     const response = await openai.chat.completions.create({
-      model: "gpt-5-nano-2025-08-07",
+      model: process.env.OPENAI_MODEL,
       messages: [
         {
           role: "system",
