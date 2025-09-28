@@ -51,31 +51,6 @@ A collection of AI agents and automation tools built with modern AI models. This
 | ----------------- | ------------------------------------------------------------------------------------------------------- |
 | **Semantic Cache** | A smart caching solution that uses semantic similarity to cache and retrieve AI-generated responses.      |
 
-## Getting Started
-
-1. Clone the repository:
-```bash
-git clone https://github.com/shubho0908/gen-ai.git
-cd gen-ai
-```
-
-2. Install dependencies:
-```bash
-pnpm install
-```
-
-3. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your API keys
-```
-
-4. Start MongoDB with Docker (for LangGraph checkpoints):
-```bash
-docker-compose up -d mongodb
-```
-
-5. Explore individual projects - each folder contains its own README with specific setup and usage instructions.
 
 ## Common Dependencies
 
